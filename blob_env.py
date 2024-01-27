@@ -1,16 +1,18 @@
 class BlobEnv:
-    def __init__(self, original_info):
+    def __init__(self, original_info, time_step):
         self.original_info = original_info
         self.info = original_info
         self.total_episode_step = 0
+        self.time_step = time_step
         # self.info is the price of the dollar in pesos
         
         ## TODO: add caution_factor and other stuff in the init.  
         ### We have to change this, this should go in the init, but right now I need the original code to work, so I'll just go with this for now. 
-        self.self.CAUTION_FACTOR = 0.5 # multiplies the punishment for holding
-        self.self.GAMBLER_PUNISHER = 1.6 # scales the punishment for buying or selling and loosing
+        self.CAUTION_FACTOR = 0.5 # multiplies the punishment for holding
+        self.GAMBLER_PUNISHER = 1.6 # scales the punishment for buying or selling and loosing
     def reset(self):
-        self.info = self.original_info[self.total_episode_step:]
+        end_of_window = self.total_episode_step + self.time_step
+        self.info = self.original_info[self.total_episode_step:end_of_window]
         self.episode_step = 0
         self.negative_step = 0
 
@@ -27,7 +29,7 @@ class BlobEnv:
     def step(self, action):
         self.episode_step += 1
         self.total_episode_step += 1
-        diff = self.info[self.TIME_STEP][0] - self.info[self.TIME_STEP - 1][0]
+        diff = self.info[-1][0] - self.info[-2][0]
 
         if action == 0: # hold 
             # I think this is fine, it's the immediate reward
@@ -41,18 +43,19 @@ class BlobEnv:
             self.negative_step += 1
         elif action == 1: # buy dollars
             if diff >= 0:
-                reward = diff/self.info[self.TIME_STEP][0]
+                reward = diff/self.info[-1][0]
             else:
-                reward = -(diff ** self.GAMBLER_PUNISHER)/self.info[self.TIME_STEP][0]
+                reward = -(diff ** self.GAMBLER_PUNISHER)/self.info[-1][0]
                 self.negative_step += 1
                 
         else: # sell dollars
             if diff >= 0:
-                reward = -(diff ** self.GAMBLER_PUNISHER)/self.info[self.TIME_STEP][0]
+                reward = -(diff ** self.GAMBLER_PUNISHER)/self.info[-1][0]
                 self.negative_step += 1
             else:
-                reward = diff/self.info[self.TIME_STEP][0]
-        self.info = self.original_info[self.total_episode_step:]
+                reward = diff/self.info[-1][0]
+        end_of_window = self.total_episode_step + self.time_step        
+        self.info = self.original_info[self.total_episode_step:end_of_window]
         done = False
         
         # If you've accumulated 200 days with losses, time to stop ... 

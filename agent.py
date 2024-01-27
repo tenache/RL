@@ -3,7 +3,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Activation, Flatten, LSTM, Dropout
 from tensorflow.keras.optimizers import Adam
 
-import deque
+from collections import deque
 import tensorflow
 import time
 import random
