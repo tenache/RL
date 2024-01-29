@@ -83,7 +83,7 @@ def run_RL(input_shape,
         # Reset flag and start iterating until episode ends
         done = False 
         while not done:
-            
+       
             if np.random.random() > epsilon:
                 # Get action from Q table
                 action = np.argmax(agent.get_qs(current_state))
