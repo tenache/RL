@@ -49,7 +49,9 @@ def run_RL(input_shape,
            epsilon,
            min_epsilon,
            aggregate_stats_every,
-           model_name):
+           model_name,
+           episodes,
+           action_space_size):
 
     info_pd = pd.read_csv(info)
     info_pd = info_pd.iloc[:,1:].apply(lambda x:x.str.replace(',','.').astype(float),axis=1)
@@ -68,7 +70,7 @@ def run_RL(input_shape,
     # Initialize environment
     env = BlobEnv(info_arr, time_step = input_shape[0])
     
-    for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
+    for episode in tqdm(range(1, episodes + 1), ascii=True, unit='episodes'):
         
         # Update tensorboard step every episode
         agent.tensorboard.step = episode
@@ -89,7 +91,7 @@ def run_RL(input_shape,
                 action = np.argmax(agent.get_qs(current_state))
             else:
                 # Get random action  ????? 
-                action = np.random.randint(0, ACTION_SPACE_SIZE)
+                action = np.random.randint(0, action_space_size)
                 
             new_state, reward, done = env.step(action)
             
@@ -133,12 +135,11 @@ if __name__ == '__main__':
     parser.add_argument('--aggregate_stats_every', type=int, default=50)
     parser.add_argument('--min_reward', type=int, default=-1)
     parser.add_argument('--model_name', type=str, default='FIRST_MODEL')
-    
+    parser.add_argument('--episodes', type=int, default=4000)
+    parser.add_argument('--action_space_size', type=int, default=3)
 
-    
     args = parser.parse_args()
 
-    # input_shape, layers, dropout, info, epsilon_decay, epsilon, min_epsilon
     run_RL(args.input_shape,
            args.layers, 
            args.dropout,
@@ -148,5 +149,7 @@ if __name__ == '__main__':
            args.min_epsilon,
            args.aggregate_stats_every,
            args.min_reward,
-           args.model_name)
+           args.model_name,
+           args.episodes,
+           args.action_space_size)
 
