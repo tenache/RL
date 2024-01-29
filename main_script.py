@@ -41,10 +41,16 @@ ep_rewards = [0]
 MIN_REWARD = -1
 
  
-def run_RL(input_shape, layers, dropout, info, epsilon_decay):
-    
-    epsilon = EPSILON
-    # print(f"episodes is {EPISODES}")
+def run_RL(input_shape,
+           layers, 
+           dropout, 
+           info,
+           epsilon_decay, 
+           epsilon,
+           min_epsilon,
+           aggregate_stats_every,
+           model_name):
+
     info_pd = pd.read_csv(info)
     info_pd = info_pd.iloc[:,1:].apply(lambda x:x.str.replace(',','.').astype(float),axis=1)
     info_arr = np.array(info_pd.iloc[:,1:])
@@ -60,7 +66,7 @@ def run_RL(input_shape, layers, dropout, info, epsilon_decay):
     agent = DQNAgent(input_shape, layers, dropout)
     
     # Initialize environment
-    env = BlobEnv(info_arr, time_step = TIME_STEP)
+    env = BlobEnv(info_arr, time_step = input_shape[0])
     
     for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         
@@ -70,7 +76,7 @@ def run_RL(input_shape, layers, dropout, info, epsilon_decay):
         # Restarting episode = reset episode reward and step number
         episode_reward = 0
         step = 1
-        
+   
         # Reset environment and get initial state
         current_state = env.reset()
         
@@ -81,7 +87,6 @@ def run_RL(input_shape, layers, dropout, info, epsilon_decay):
             if np.random.random() > epsilon:
                 # Get action from Q table
                 action = np.argmax(agent.get_qs(current_state))
-            
             else:
                 # Get random action  ????? 
                 action = np.random.randint(0, ACTION_SPACE_SIZE)
@@ -100,38 +105,48 @@ def run_RL(input_shape, layers, dropout, info, epsilon_decay):
             
             # Append episode reward to a list and log stats (every given number of episodes)
             ep_rewards.append(episode_reward)  
-            # print(f"ep_rewards is {ep_rewards}")
             
-            if not episode % AGGREGATE_STATS_EVERY or episode == 1:
-                # print(f"ep_rewards is {ep_rewards}")
-                average_reward = sum(ep_rewards[-AGGREGATE_STATS_EVERY:])/len(ep_rewards[-AGGREGATE_STATS_EVERY:])
-                min_reward = min(ep_rewards[-AGGREGATE_STATS_EVERY:])
-                max_reward = max(ep_rewards[-AGGREGATE_STATS_EVERY:])
+            if not episode % aggregate_stats_every or episode == 1:
+                average_reward = sum(ep_rewards[-aggregate_stats_every:])/len(ep_rewards[-aggregate_stats_every:])
+                min_reward = min(ep_rewards[-aggregate_stats_every:])
+                max_reward = max(ep_rewards[-aggregate_stats_every:])
                 agent.tensorboard.update_stats(reward_avg=average_reward, reward_min=min_reward, reward_max=max_reward, epsilon=epsilon)
                 
                 # Save model, but only when min reward is greater or equal a set value
-                if min_reward >= MIN_REWARD:
-                    agent.model.save(f'models/{MODEL_NAME}__{max_reward:_>7.2f}max_{average_reward:_>7.2f}avg_{min_reward:_>7.2f}min__{int(time.time())}.model')
+                if min_reward >= min_reward:
+                    agent.model.save(f'models/{model_name}__{max_reward:_>7.2f}max_{average_reward:_>7.2f}avg_{min_reward:_>7.2f}min__{int(time.time())}.model')
             
             # Decay epsilon
-            if  epsilon > MIN_EPSILON:
+            if  epsilon > min_epsilon:
                 epsilon *= epsilon_decay
-                epsilon = max(MIN_EPSILON, epsilon)  
+                epsilon = max(min_epsilon, epsilon)  
                 
-            
-     
-    
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input_shape', type=tuple, default=(200,3))
+    parser.add_argument('-i', '--input_shape', type=tuple, default=(300,3))
     parser.add_argument('-l', '--layers', type=list, default=[32,32,23])
     parser.add_argument('-d', '--dropout', type=float)
     parser.add_argument('--info', type=str, default="dolar_todos.csv")
     parser.add_argument('--decay', type=float, default=0.99975)
+    parser.add_argument('-e','--epsilon',type=int, default=0.6)
+    parser.add_argument('--min_epsilon', type=int, default=-1)
+    parser.add_argument('--aggregate_stats_every', type=int, default=50)
+    parser.add_argument('--min_reward', type=int, default=-1)
+    parser.add_argument('--model_name', type=str, default='FIRST_MODEL')
+    
+
+    
     args = parser.parse_args()
 
-    # input_shape, layers, dropout, info, epsilon_decay
-    run_RL(args.input_shape, args.layers, args.dropout, args.info, args.decay)
+    # input_shape, layers, dropout, info, epsilon_decay, epsilon, min_epsilon
+    run_RL(args.input_shape,
+           args.layers, 
+           args.dropout,
+           args.info,
+           args.decay,
+           args.epsilon, 
+           args.min_epsilon,
+           args.aggregate_stats_every,
+           args.min_reward,
+           args.model_name)
 
