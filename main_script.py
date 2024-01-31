@@ -19,7 +19,6 @@ import argparse
 
 REPLAY_MEMORY_SIZE = 1500
 MIN_REPLAY_MEMORY_SIZE = 100
-MODEL_NAME = 'FIRST_MODEL'
 MINIBATCH_SIZE = 32
 DISCOUNT = 1 - (1/2**6)
 UPDATE_TARGET_EVERY = 5
@@ -36,11 +35,23 @@ EPSILON = 0.6 # not a constant, going to be decayed
 EPSILON_DECAY = 0.99975
 MIN_EPSILON = 0.001
 ACTION_SPACE_SIZE = 3 # number of possible decisions
-AGGREGATE_STATS_EVERY = 50
+AGGREGATE_STATS_EVERY = 5
 ep_rewards = [0]
 MIN_REWARD = -1
 
- 
+# run_RL(args.input_shape,
+#        args.layers, 
+#        args.dropout,
+#        args.info,
+#        args.decay,
+#        args.epsilon, 
+#        args.min_epsilon,
+#        args.aggregate_stats_every,
+#        args.min_reward,
+#        args.model_name,
+#        args.episodes,
+#        args.action_space_size 
+
 def run_RL(input_shape,
            layers, 
            dropout, 
@@ -49,9 +60,11 @@ def run_RL(input_shape,
            epsilon,
            min_epsilon,
            aggregate_stats_every,
+           min_reward,
            model_name,
            episodes,
-           action_space_size):
+           action_space_size,
+           discount):
 
     info_pd = pd.read_csv(info)
     info_pd = info_pd.iloc[:,1:].apply(lambda x:x.str.replace(',','.').astype(float),axis=1)
@@ -65,7 +78,7 @@ def run_RL(input_shape,
         os.makedirs('models')
         
     # Initialize agent
-    agent = DQNAgent(input_shape, layers, dropout)
+    agent = DQNAgent(input_shape, layers, dropout, model_name)
     
     # Initialize environment
     env = BlobEnv(info_arr, time_step = input_shape[0])
@@ -100,7 +113,7 @@ def run_RL(input_shape,
             
             # Every step we update replay memory and train main network
             agent.update_replay_memory((current_state, action, reward, new_state, done))
-            agent.train(done, step)
+            agent.train(done)
             
             current_state = new_state 
             step += 1
@@ -121,12 +134,12 @@ def run_RL(input_shape,
             # Decay epsilon
             if  epsilon > min_epsilon:
                 epsilon *= epsilon_decay
-                epsilon = max(min_epsilon, epsilon)  
+                epsilon = max(min_epsilon, epsilon)
                 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input_shape', type=tuple, default=(300,3))
-    parser.add_argument('-l', '--layers', type=list, default=[32,32,23])
+    parser.add_argument('-l', '--layers', type=list, default=[32,32,23,23])
     parser.add_argument('-d', '--dropout', type=float)
     parser.add_argument('--info', type=str, default="dolar_todos.csv")
     parser.add_argument('--decay', type=float, default=0.99975)
@@ -135,8 +148,9 @@ if __name__ == '__main__':
     parser.add_argument('--aggregate_stats_every', type=int, default=50)
     parser.add_argument('--min_reward', type=int, default=-1)
     parser.add_argument('--model_name', type=str, default='FIRST_MODEL')
-    parser.add_argument('--episodes', type=int, default=4000)
+    parser.add_argument('--episodes', type=int, default=20)
     parser.add_argument('--action_space_size', type=int, default=3)
+    parser.add_argument('--discount',type=float, default= 1 - (1/2**6))
 
     args = parser.parse_args()
 
@@ -151,5 +165,6 @@ if __name__ == '__main__':
            args.min_reward,
            args.model_name,
            args.episodes,
-           args.action_space_size)
+           args.action_space_size,
+           args.discount)
 

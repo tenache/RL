@@ -10,14 +10,13 @@ import random
 import numpy as np
 
 REPLAY_MEMORY_SIZE = 1500
-MODEL_NAME = 'FIRST_MODEL'
 MIN_REPLAY_MEMORY_SIZE = 100
 MINIBATCH_SIZE = 32
 DISCOUNT = 1 - (1/2**6) 
 UPDATE_TARGET_EVERY = 5
 
 class DQNAgent:
-    def __init__(self, input_shape_, layers, dropout):
+    def __init__(self, input_shape_, layers, dropout, model_name):
         # Main model
         # gets trained every step
         self.model = self.create_model(input_shape_, layers, dropout)
@@ -32,7 +31,7 @@ class DQNAgent:
         self.replay_memory = deque(maxlen=REPLAY_MEMORY_SIZE)
 
         # Custom tensorboard object
-        self.tensorboard = ModifiedTensorBoard(log_dir="logs/{}-{}".format(MODEL_NAME, int(time.time())))
+        self.tensorboard = ModifiedTensorBoard(log_dir="logs/{}-{}".format(model_name, int(time.time())))
 
         # Used to count when to update target network with main network's weights
         self.target_update_counter = 0 
@@ -59,7 +58,7 @@ class DQNAgent:
         return self.model.predict(np.array(state).reshape(-1, *state.shape))[0]
 
     # Trains main network every step during episode
-    def train(self, terminal_state, step):
+    def train(self, terminal_state):
 
         # Start training only if certain number of samples is already saved
         if len(self.replay_memory) < MIN_REPLAY_MEMORY_SIZE:
@@ -80,7 +79,7 @@ class DQNAgent:
         y = []
 
         # Now we need to enumerate our batches
-        for index, (current_state, action, reward, new_current_state, done) in enumerate(minibatch):
+        for index, (current_state, action, reward, new_current_states, done) in enumerate(minibatch):
 
             # If not a terminal state, get new q from future states, otherwise set it to 0
             # almost like with Q Learning, but we use just part of equation here

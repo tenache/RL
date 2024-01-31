@@ -1,3 +1,5 @@
+import random as rr
+
 class BlobEnv:
     def __init__(self, original_info, time_step):
         self.original_info = original_info
@@ -11,8 +13,9 @@ class BlobEnv:
         self.CAUTION_FACTOR = 0.5 # multiplies the punishment for holding
         self.GAMBLER_PUNISHER = 1.6 # scales the punishment for buying or selling and loosing
     def reset(self):
-        end_of_window = self.total_episode_step + self.time_step
-        self.info = self.original_info[self.total_episode_step:end_of_window]
+        self.start_of_window = rr.randint(0,len(self.original_info)-self.time_step)
+        self.end_of_window = self.start_of_window + self.time_step
+        self.info = self.original_info[self.start_of_window:self.end_of_window]
         self.episode_step = 0
         self.negative_step = 0
 
@@ -45,7 +48,7 @@ class BlobEnv:
             if diff >= 0:
                 reward = diff/self.info[-1][0]
             else:
-                reward = -(diff ** self.GAMBLER_PUNISHER)/self.info[-1][0]
+                reward = -(abs(diff) ** self.GAMBLER_PUNISHER)/self.info[-1][0]
                 self.negative_step += 1
                 
         else: # sell dollars
@@ -54,8 +57,10 @@ class BlobEnv:
                 self.negative_step += 1
             else:
                 reward = diff/self.info[-1][0]
-        end_of_window = self.total_episode_step + self.time_step        
-        self.info = self.original_info[self.total_episode_step:end_of_window]
+        self.start_of_window += 1
+        self.end_of_window += 1
+        # end_of_window = self.total_episode_step + self.time_step
+        self.info = self.original_info[self.start_of_window:self.end_of_window]
         done = False
         
         # If you've accumulated 200 days with losses, time to stop ... 
