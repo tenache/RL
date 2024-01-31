@@ -13,12 +13,13 @@ class BlobEnv:
         self.CAUTION_FACTOR = 0.5 # multiplies the punishment for holding
         self.GAMBLER_PUNISHER = 1.6 # scales the punishment for buying or selling and loosing
     def reset(self):
-        self.start_of_window = rr.randint(0,len(self.original_info)-self.time_step)
+        self.start_of_window = rr.randint(0,len(self.original_info)-self.time_step*2)
         self.end_of_window = self.start_of_window + self.time_step
         self.info = self.original_info[self.start_of_window:self.end_of_window]
         self.episode_step = 0
         self.negative_step = 0
 
+        
         return self.info
     
     # action will be one of three values. buy, sell, hold. 
@@ -63,8 +64,9 @@ class BlobEnv:
         self.info = self.original_info[self.start_of_window:self.end_of_window]
         done = False
         
-        # If you've accumulated 200 days with losses, time to stop ... 
-        if self.episode_step  >= 300 or self.negative_step >= 150:
+        # If you've accumulated 200 days with losses, time to stop ...
+        # i think the correct is time_step 
+        if self.episode_step  >= self.time_step or self.negative_step >= 150:
             done = True
         
         return self.info, reward, done
