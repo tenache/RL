@@ -66,9 +66,14 @@ def run_RL(input_shape,
            action_space_size,
            discount):
 
+    TRAIN_PROP = 0.8
+    
     info_pd = pd.read_csv(info)
     info_pd = info_pd.iloc[:,1:].apply(lambda x:x.str.replace(',','.').astype(float),axis=1)
-    info_arr = np.array(info_pd.iloc[:,1:])
+    train_limit = int(len(info_pd)*TRAIN_PROP)
+    info_arr_train = np.array(info_pd.iloc[:train_limit,1:])
+    info_arr_test = np.array(info_pd.iloc[train_limit:,1:])
+    
     # For more reproducible results
     random.seed(23)
     np.random.seed(23)
@@ -78,10 +83,10 @@ def run_RL(input_shape,
         os.makedirs('models')
         
     # Initialize agent
-    agent = DQNAgent(input_shape, layers, dropout, model_name)
+    agent = DQNAgent(input_shape, layers, dropout, model_name, info_arr_test, time_step)
     
     # Initialize environment
-    env = BlobEnv(info_arr, time_step = input_shape[0])
+    env = BlobEnv(info_arr_train, time_step = input_shape[0], info_test=info_arr_test)
     
     for episode in tqdm(range(1, episodes + 1), ascii=True, unit='episodes'):
         
@@ -122,6 +127,7 @@ def run_RL(input_shape,
             ep_rewards.append(episode_reward)  
             
             if not episode % aggregate_stats_every or episode == 1:
+                print(ep_rewards)
                 average_reward = sum(ep_rewards[-aggregate_stats_every:])/len(ep_rewards[-aggregate_stats_every:])
                 min_reward = min(ep_rewards[-aggregate_stats_every:])
                 max_reward = max(ep_rewards[-aggregate_stats_every:])

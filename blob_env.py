@@ -1,7 +1,8 @@
 import random as rr
 
 class BlobEnv:
-    def __init__(self, original_info, time_step):
+    def __init__(self, original_info, time_step, info_test):
+        self.info_test = info_test
         self.original_info = original_info
         self.info = original_info
         self.total_episode_step = 0
@@ -69,3 +70,5 @@ class BlobEnv:
             done = True
         
         return self.info, reward, done
+
+        

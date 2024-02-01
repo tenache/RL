@@ -16,9 +16,11 @@ DISCOUNT = 1 - (1/2**6)
 UPDATE_TARGET_EVERY = 5
 
 class DQNAgent:
-    def __init__(self, input_shape_, layers, dropout, model_name):
+    def __init__(self, input_shape_, layers, dropout, model_name, array_test, time_step):
         # Main model
         # gets trained every step
+        self.time_step = time_step
+        self. array_test = array_test
         self.model = self.create_model(input_shape_, layers, dropout)
 
         # Target network
@@ -110,3 +112,14 @@ class DQNAgent:
         if self.target_update_counter > UPDATE_TARGET_EVERY:
             self.target_model.set_weights(self.model.get_weights())
             self.target_update_counter = 0
+            
+    def test(self):
+        start = 0
+        for i in range(len(self.array_test)):
+            start += 1
+            test_window = self.array_test[start:self.time_step]
+            action = self.target_model.predict(test_window.reshape(-1),test_window.shape)[0]
+            
+            return self.model.predict(np.array(state).reshape(-1, *state.shape))[0]
+        
+    
