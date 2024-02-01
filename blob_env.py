@@ -18,8 +18,7 @@ class BlobEnv:
         self.info = self.original_info[self.start_of_window:self.end_of_window]
         self.episode_step = 0
         self.negative_step = 0
-
-        
+      
         return self.info
     
     # action will be one of three values. buy, sell, hold. 
