@@ -10,12 +10,14 @@ from blob_env import BlobEnv
 from collections import deque
 import random
 import time
+from datetime import datetime
 import pandas as pd
 import numpy as np 
 from tqdm import tqdm
 import os
 
 import argparse
+
 
 REPLAY_MEMORY_SIZE = 1500
 MIN_REPLAY_MEMORY_SIZE = 100
@@ -72,6 +74,7 @@ def run_RL(input_shape,
     info_pd = info_pd.iloc[:,1:].apply(lambda x:x.str.replace(',','.').astype(float),axis=1)
     train_limit = int(len(info_pd)*TRAIN_PROP)
     info_arr_train = np.array(info_pd.iloc[:train_limit,1:])
+    
     info_arr_test = np.array(info_pd.iloc[train_limit:,1:])
     
     # For more reproducible results
@@ -83,7 +86,7 @@ def run_RL(input_shape,
         os.makedirs('models')
         
     # Initialize agent
-    agent = DQNAgent(input_shape, layers, dropout, model_name, info_arr_test, time_step)
+    agent = DQNAgent(input_shape, layers, dropout, model_name, info_arr_test, input_shape[0])
     
     # Initialize environment
     env = BlobEnv(info_arr_train, time_step = input_shape[0], info_test=info_arr_test)
@@ -111,7 +114,7 @@ def run_RL(input_shape,
                 # Get random action  ????? 
                 action = np.random.randint(0, action_space_size)
                 
-            new_state, reward, done = env.step(action)
+            new_state, reward, done, won = env.step(action)
             
             # Transform new continuous state to a new discrete state and count reward 
             episode_reward += reward
@@ -127,7 +130,7 @@ def run_RL(input_shape,
             ep_rewards.append(episode_reward)  
             
             if not episode % aggregate_stats_every or episode == 1:
-                print(ep_rewards)
+                # print(ep_rewards)
                 average_reward = sum(ep_rewards[-aggregate_stats_every:])/len(ep_rewards[-aggregate_stats_every:])
                 min_reward = min(ep_rewards[-aggregate_stats_every:])
                 max_reward = max(ep_rewards[-aggregate_stats_every:])
@@ -141,11 +144,25 @@ def run_RL(input_shape,
             if  epsilon > min_epsilon:
                 epsilon *= epsilon_decay
                 epsilon = max(min_epsilon, epsilon)
+    actions = agent.test()
+    env.reset_test()
+    won_arr = []
+    for action in actions:
+        new_state, reward, done, won = env.step(action)
+        won_arr.append(won)
+    
+    won_arr = np.array(won_arr)
+    info_pd_test = info_pd.iloc[train_limit:]
+    info_pd_test['won_or_not']:won_arr
+    name = name = f'models/info_pd_test__{max_reward:_>7.2f}max_{average_reward:_>7.2f}avg_{min_reward:_>7.2f}min__{int(time.time())}.csv'
+    info_pd_test.to_csv(name)
+    
+        
                 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input_shape', type=tuple, default=(300,3))
-    parser.add_argument('-l', '--layers', type=list, default=[32,32,23,23])
+    parser.add_argument('-l', '--layers', nargs='*',type=int, default=[32,32,23,23])
     parser.add_argument('-d', '--dropout', type=float)
     parser.add_argument('--info', type=str, default="dolar_todos.csv")
     parser.add_argument('--decay', type=float, default=0.99975)

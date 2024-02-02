@@ -115,11 +115,13 @@ class DQNAgent:
             
     def test(self):
         start = 0
-        for i in range(len(self.array_test)):
+        actions = []
+        for _ in range(len(self.array_test-self.time_step)):
             start += 1
-            test_window = self.array_test[start:self.time_step]
-            action = self.target_model.predict(test_window.reshape(-1),test_window.shape)[0]
-            
-            return self.model.predict(np.array(state).reshape(-1, *state.shape))[0]
-        
+            test_window = self.array_test[start:self.time_step+start]
+            # self.model.predict(np.array(state).reshape(-1, *state.shape))[0]
+            actions.append(np.argmax(self.target_model.predict(test_window.reshape(-1,test_window.shape)[0])))
+        return actions
+       
+       
     
